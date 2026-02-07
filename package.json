@@ -1,0 +1,26 @@
+{
+  "name": "talkcad",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LLM-powered conversational CAD application",
+  "scripts": {
+    "dev": "pnpm --filter talkcad-desktop dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "keywords": [
+    "cad",
+    "openscad",
+    "llm",
+    "3d-printing"
+  ],
+  "license": "MIT",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "potrace": "^2.1.8"
+  }
+}

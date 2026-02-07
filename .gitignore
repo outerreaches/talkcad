@@ -1,0 +1,26 @@
+node_modules
+dist
+dist-electron
+.DS_Store
+.env
+.env.*
+*.log
+coverage
+
+# Config files (may contain API keys)
+config.json
+talkcad.config.json
+.talkcadrc
+
+# User Data
+apps/desktop/projects/
+
+# Learned Skills (User Data)
+resources/skills/learned/
+
+# Claude Code (internal reference)
+CLAUDE.md
+.claude/
+
+# Empty development directories
+services/
