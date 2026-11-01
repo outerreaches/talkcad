@@ -56,7 +56,7 @@
     "vite": "^5.0.0",
     "vite-plugin-electron": "^0.28.0",
     "vite-plugin-electron-renderer": "^0.14.6",
-    "vitest": "^2.1.9"
+    "vitest": "^3.2.7"
   },
   "build": {
     "appId": "app.talkcad",
@@ -78,7 +78,10 @@
       }
     ],
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Graphics",
       "icon": "build/icon.png",
       "maintainer": "TalkCAD Contributors <noreply@talkcad.app>",
@@ -86,11 +89,15 @@
       "description": "TalkCAD turns natural-language part descriptions into parametric OpenSCAD, renders a live preview, verifies the result against your specifications and exports STL."
     },
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "build/icon.png"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.graphics-design",
       "icon": "build/icon.png"
     }
