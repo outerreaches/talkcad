@@ -1,5 +1,7 @@
 # TalkCAD
 
+[![CI](https://github.com/outerreaches/talkcad/actions/workflows/ci.yml/badge.svg)](https://github.com/outerreaches/talkcad/actions/workflows/ci.yml)
+
 **Describe a part in plain language. Get parametric OpenSCAD, a live 3D preview, and a printable STL.**
 
 <p align="center">
