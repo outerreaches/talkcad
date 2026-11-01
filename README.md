@@ -1,6 +1,14 @@
 # TalkCAD
 
-A conversational CAD interface where users describe 3D objects in natural language, and an LLM generates, refines, and iterates on OpenSCAD code with live preview.
+**Describe a part in plain language. Get parametric OpenSCAD, a live 3D preview, and a printable STL.**
+
+<p align="center">
+  <img src="assets/screenshots/split-view.png" alt="TalkCAD split view: chat, OpenSCAD code, live 3D preview and tracked specifications" width="900">
+</p>
+
+TalkCAD is a desktop CAD tool built around an LLM agent that writes [OpenSCAD](https://openscad.org/)
+for you, renders it, checks the result against the dimensions you asked for, and repairs its own
+mistakes. The output is ordinary OpenSCAD — you can read it, edit it, and keep it forever.
 
 ## Features
 
@@ -12,42 +20,30 @@ A conversational CAD interface where users describe 3D objects in natural langua
 - **Knowledge Base** — Built-in skills library with design rules, techniques, and dimensions
 - **Web Research** — Integrated web search for finding real-world dimensions and references
 - **Image Support** — Attach reference images or capture viewport screenshots
+- **Local or cloud models** — OpenRouter, OpenAI, Gemini, Groq, Ollama, LM Studio, llama.cpp, or any OpenAI-compatible endpoint
+
+## How it works
+
+1. You describe the part and any hard dimensions.
+2. The agent retrieves relevant design rules from the bundled knowledge base, asks for anything it
+   cannot infer, and writes OpenSCAD.
+3. OpenSCAD renders the model; the agent verifies the geometry against your specifications —
+   by reading the code, by inspecting render statistics, and optionally by looking at rendered views.
+4. Failed checks go back to the agent as a repair task. The loop is bounded and every step is visible
+   in the chat.
+
 
 ## Prerequisites
 
-### OpenSCAD
+TalkCAD shells out to **OpenSCAD** for every render — it is not bundled, install it first:
 
-TalkCAD requires [OpenSCAD](https://openscad.org/) to be installed on your system.
+| Platform | Install |
+|----------|---------|
+| macOS | `brew install --cask openscad`, or the .dmg from openscad.org |
+| Windows | Installer from [openscad.org/downloads](https://openscad.org/downloads.html) |
+| Linux | `sudo apt install openscad` · `sudo dnf install openscad` · snap |
 
-**Download:** https://openscad.org/downloads.html
-
-#### macOS Setup
-
-After downloading and installing OpenSCAD, macOS Gatekeeper may block the app from running because it cannot verify the developer. You'll see an error like:
-
-> "OpenSCAD-2021.01.app" Not Opened
-> Apple could not verify "OpenSCAD-2021.01.app" is free of malware...
-
-**To fix this, use one of these methods:**
-
-**Option 1: Right-click to Open (Recommended)**
-1. Open Finder and navigate to `/Applications`
-2. Right-click (or Control-click) on `OpenSCAD-2021.01.app`
-3. Select "Open" from the context menu
-4. Click "Open" in the security dialog that appears
-
-This only needs to be done once. macOS will remember your choice.
-
-**Option 2: Terminal Command**
-```bash
-xattr -d com.apple.quarantine /Applications/OpenSCAD-2021.01.app
-```
-
-**Option 3: System Settings**
-1. Open **System Settings** → **Privacy & Security**
-2. Scroll to the "Security" section
-3. Look for the message about OpenSCAD being blocked
-4. Click **"Open Anyway"**
+If macOS blocks OpenSCAD on first launch, see [Troubleshooting](#troubleshooting).
 
 #### Expected Installation Paths
 
@@ -63,22 +59,36 @@ If OpenSCAD is installed elsewhere, you can set the path manually in Settings.
 
 ## Getting Started
 
-```bash
-# Install dependencies
-pnpm install
+### Install a release
 
-# Run the desktop app
+Linux packages (AppImage and `.deb`) are published on the
+[Releases](https://github.com/outerreaches/talkcad/releases) page. They are unsigned; on first launch
+your OS may ask you to confirm. macOS and Windows builds are produced from source with `pnpm build`
+until signed releases exist.
+
+### Build from source
+
+```bash
+pnpm install
 cd apps/desktop
 pnpm dev
 ```
 
+Build a distributable app with `pnpm build` (runs `tsc`, `vite build` and `electron-builder`).
+
 ### API Key Setup
 
-TalkCAD requires an LLM provider. The default is OpenRouter, which provides access to multiple models.
+TalkCAD needs an LLM provider. OpenRouter is the default and the only provider that supports the
+web-research tools.
 
-1. Get an API key from [OpenRouter](https://openrouter.ai/keys)
-2. Open TalkCAD and go to **Settings** (gear icon)
-3. Enter your API key and select your preferred model
+1. Get a key at [openrouter.ai/keys](https://openrouter.ai/keys) — or start a local model in Ollama
+   and pick that provider instead.
+2. Open **Settings** (gear icon), paste the key, choose a model.
+
+The key is encrypted with the OS keychain (macOS Keychain, Windows DPAPI, Linux libsecret) whenever
+one is available; if there is no usable keyring, it is written to `config.json` with `0600`
+permissions and the app warns at startup. The headless CLI never touches the encrypted copy — it
+reads `OPENROUTER_API_KEY` / `LLM_PROVIDER` / `LLM_MODEL` from the environment.
 
 ### Storage locations
 
@@ -87,6 +97,12 @@ TalkCAD stores data in your OS user data directory (Electron `app.getPath('userD
 - **Sessions/projects**: `<userData>/projects` (override via `TALKCAD_PROJECTS_DIR`)
 - **Config (shared with CLI)**: `<userData>/config.json`
 - **User-created skills**: `<userData>/skills`
+
+## Screenshots
+
+| Code and chat | Split view with the rendered model |
+|---|---|
+| ![Code view with chat and tracked specs](assets/screenshots/code-view.png) | ![Split view with 3D preview](assets/screenshots/split-view.png) |
 
 ## User Interface
 
@@ -307,24 +323,36 @@ Created by [Alexander Mazurovsky](https://alexmaz.com)
 ## Development
 
 ```bash
-# Install dependencies
 pnpm install
+pnpm dev          # Electron + Vite with hot reload
 
-# Run in development mode
-pnpm dev
-
-# Build all packages
-pnpm build
-
-# Type check
-pnpm typecheck
-
-# Lint
-pnpm lint
-
-# Run CLI agent (from apps/desktop)
-pnpm cli
+pnpm typecheck    # tsc --noEmit
+pnpm lint         # eslint
+pnpm test         # vitest (unit tests)
+pnpm build        # tsc + vite build + electron-builder
 ```
+
+CI runs the same four checks on every push (`.github/workflows/ci.yml`): typecheck, lint, unit
+tests, production build, plus an audit of production dependencies.
+
+The renderer has no direct Node access: everything goes through the `window.api` bridge in
+`electron/preload.ts`, and the main process only touches paths inside the projects directory or
+folders you opened with a native dialog.
+
+## Troubleshooting
+
+**OpenSCAD is not found.** TalkCAD looks in the standard locations listed above; if yours lives
+elsewhere, set the path in Settings.
+
+**macOS will not open OpenSCAD.** Gatekeeper blocks the unsigned OpenSCAD build. Right-click the app
+in `/Applications` → **Open** → **Open**, or run
+`xattr -d com.apple.quarantine /Applications/OpenSCAD.app`. This only needs to be done once.
+
+**The window is blank on Linux.** Some compositors are mis-detected; start with
+`--ozone-platform=x11` (or set `ELECTRON_OZONE_PLATFORM_HINT=x11`).
+
+**"Unsaved buffer" in the editor.** Expected: the editor tracks a session buffer until you open a
+folder with **Open Folder**; the session itself is saved to `<userData>/projects`.
 
 ## License
 

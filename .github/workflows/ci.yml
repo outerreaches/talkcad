@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    env:
+      # The build does not need the Electron binary; skip the ~100 MB download.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter talkcad-desktop typecheck
+
+      - name: Lint
+        run: pnpm --filter talkcad-desktop lint
+
+      - name: Unit tests
+        run: pnpm --filter talkcad-desktop test
+
+      - name: Build renderer, preload and main
+        run: pnpm --filter talkcad-desktop exec vite build
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=high

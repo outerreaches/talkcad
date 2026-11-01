@@ -18,6 +18,27 @@ import type { TalkCADConfig } from '@talkcad/shared';
 import { DEFAULT_CONFIG } from '@talkcad/shared';
 
 /**
+ * Pluggable secret storage. The Electron main process registers a safeStorage
+ * codec; the CLI leaves it unset and keeps reading plaintext / env vars.
+ */
+export interface SecretCodec {
+  readonly available: boolean;
+  encrypt(plain: string): Promise<string>;
+  decrypt(blob: string): Promise<string>;
+}
+
+let secretCodec: SecretCodec | null = null;
+
+export function setSecretCodec(codec: SecretCodec | null): void {
+  secretCodec = codec;
+}
+
+export function hasSecretCodec(): boolean {
+  return !!secretCodec?.available;
+}
+
+
+/**
  * Get the config directory path (cross-platform)
  * When running in Electron, prefer app.getPath('userData')
  * When running in CLI/Node, use platform-specific paths
@@ -63,7 +84,21 @@ export async function loadConfig(electronUserDataPath?: string): Promise<TalkCAD
     const parsed = JSON.parse(content) as Partial<TalkCADConfig>;
 
     // Merge with defaults to handle missing fields from older config versions
-    return mergeWithDefaults(parsed);
+    const merged = mergeWithDefaults(parsed);
+
+    // Encrypted secrets: decrypt into the live config when a codec is available.
+    if (parsed.llm?.apiKeyEnc) {
+      merged.llm.apiKeyEnc = parsed.llm.apiKeyEnc;
+      if (secretCodec?.available) {
+        try {
+          merged.llm.apiKey = await secretCodec.decrypt(parsed.llm.apiKeyEnc);
+        } catch (error) {
+          console.error('[Config] Failed to decrypt API key:', error);
+        }
+      }
+    }
+
+    return merged;
   } catch (error) {
     console.error('[Config] Failed to load config, using defaults:', error);
     return { ...DEFAULT_CONFIG };
@@ -85,8 +120,23 @@ export async function saveConfig(
     await mkdir(configDir, { recursive: true });
   }
 
+  // Encrypt the API key at rest when the OS keychain is available.
+  // The plaintext field is removed so it cannot linger in backups or greps.
+  const output: TalkCADConfig = {
+    ...config,
+    llm: { ...config.llm },
+  };
+  if (output.llm.apiKey && secretCodec?.available) {
+    try {
+      output.llm.apiKeyEnc = await secretCodec.encrypt(output.llm.apiKey);
+      output.llm.apiKey = '';
+    } catch (error) {
+      console.error('[Config] Failed to encrypt API key, leaving it in plaintext:', error);
+    }
+  }
+
   // Write with pretty formatting
-  const content = JSON.stringify(config, null, 2);
+  const content = JSON.stringify(output, null, 2);
   await writeFile(configPath, content, 'utf-8');
 
   // Set restrictive permissions on Unix systems (contains API key)

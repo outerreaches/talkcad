@@ -7,6 +7,7 @@ import type {
   LLMProvider as LLMProviderType,
 } from '@talkcad/shared';
 import { createProvider } from '../llm';
+import { evaluateExpression } from './expression';
 
 // ============================================
 // Verification Types
@@ -75,36 +76,14 @@ export interface VerificationReport {
 /**
  * Safely evaluate a math expression string.
  * Used by the verifier to compute expected values without hallucination risk.
+ * Delegates to a parser that only understands numbers, operators, context
+ * variables and a fixed function set — no code evaluation.
  */
 export function computeExpression(
   expression: string,
   context?: Record<string, number>
 ): { value: number; error?: string } {
-  try {
-    // Only allow safe math operations
-    const safeExpression = expression.replace(/[^0-9+\-*/().,%\s\w]/g, '');
-
-    // Create evaluation context with Math functions
-    const contextKeys = Object.keys(context || {});
-    const contextValues = Object.values(context || {});
-
-    // Build function with context variables as parameters
-    const fn = new Function(
-      'Math',
-      ...contextKeys,
-      `"use strict"; return (${safeExpression});`
-    );
-
-    const value = fn(Math, ...contextValues);
-
-    if (typeof value !== 'number' || !isFinite(value)) {
-      return { value: NaN, error: 'Expression did not evaluate to a finite number' };
-    }
-
-    return { value };
-  } catch (e) {
-    return { value: NaN, error: String(e) };
-  }
+  return evaluateExpression(expression, context);
 }
 
 // ============================================

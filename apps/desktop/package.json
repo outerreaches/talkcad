@@ -1,9 +1,10 @@
 {
   "name": "talkcad-desktop",
   "productName": "TalkCAD",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "LLM-powered conversational CAD application with OpenSCAD",
   "author": "TalkCAD Contributors",
+  "homepage": "https://talkcad.app",
   "private": true,
   "main": "./dist-electron/main.js",
   "scripts": {
@@ -12,6 +13,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src electron",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "cli": "npx tsx scripts/cli-agent.ts"
   },
   "dependencies": {
@@ -42,7 +45,7 @@
     "@typescript-eslint/parser": "^8.53.1",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.0",
-    "electron": "^32.0.0",
+    "electron": "^45.2.1",
     "electron-builder": "^26.0.0",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
@@ -52,10 +55,16 @@
     "typescript": "^5.3.0",
     "vite": "^5.0.0",
     "vite-plugin-electron": "^0.28.0",
-    "vite-plugin-electron-renderer": "^0.14.6"
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^2.1.9"
   },
   "build": {
     "appId": "app.talkcad",
+    "productName": "TalkCAD",
+    "directories": {
+      "output": "../../release",
+      "buildResources": "build"
+    },
     "files": [
       "dist/**",
       "dist-electron/**",
@@ -67,6 +76,23 @@
         "from": "../../resources/skills",
         "to": "assets/skills"
       }
-    ]
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Graphics",
+      "icon": "build/icon.png",
+      "maintainer": "TalkCAD Contributors <noreply@talkcad.app>",
+      "synopsis": "Conversational CAD with OpenSCAD and an LLM agent",
+      "description": "TalkCAD turns natural-language part descriptions into parametric OpenSCAD, renders a live preview, verifies the result against your specifications and exports STL."
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.graphics-design",
+      "icon": "build/icon.png"
+    }
   }
 }

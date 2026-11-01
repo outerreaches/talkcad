@@ -327,6 +327,8 @@ export interface TalkCADConfig {
     provider: LLMProvider;
     model: string;
     apiKey?: string;
+    /** Encrypted at rest by the Electron main process (safeStorage). */
+    apiKeyEnc?: string;
     baseUrl?: string;
   };
   researcher?: {

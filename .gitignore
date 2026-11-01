@@ -24,3 +24,6 @@ CLAUDE.md
 
 # Empty development directories
 services/
+
+# Packaging output
+release/
